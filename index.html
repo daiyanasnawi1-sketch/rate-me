@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rate Daiyan Asnawi</title>
+<style>
+  :root{--bg:#0f1220;--card:#181c30;--line:#2a3050;--text:#eef0fa;--mut:#9aa1c4;--star:#ffc233;--acc:#7c8cff}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:radial-gradient(1200px 600px at 50% -10%,#232a55,var(--bg));color:var(--text);min-height:100vh}
+  .wrap{max-width:560px;margin:0 auto;padding:28px 16px 60px}
+  .hero{text-align:center;margin-bottom:22px}
+  .avatar{width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,#7c8cff,#c07cff);display:grid;place-items:center;font-size:34px;font-weight:700;margin:0 auto 12px}
+  h1{margin:0;font-size:26px}
+  .sub{color:var(--mut);margin-top:4px;font-size:14px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+  .card h2{margin:0 0 12px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+  .big{display:flex;align-items:center;gap:16px}
+  .avg{font-size:52px;font-weight:700;line-height:1}
+  .stars{color:var(--star);letter-spacing:2px;font-size:20px}
+  .count{color:var(--mut);font-size:13px;margin-top:2px}
+  .bars{margin-top:14px;display:grid;gap:6px}
+  .bar{display:grid;grid-template-columns:18px 1fr 28px;gap:8px;align-items:center;font-size:12px;color:var(--mut)}
+  .track{height:8px;background:#232846;border-radius:99px;overflow:hidden}
+  .fill{height:100%;background:var(--star);width:0;transition:width .4s}
+  .picker{display:flex;justify-content:center;gap:6px;margin:6px 0 14px}
+  .picker button{background:none;border:0;font-size:40px;line-height:1;color:#3a4170;cursor:pointer;padding:2px;transition:transform .1s}
+  .picker button.on{color:var(--star)}
+  .picker button:active{transform:scale(1.2)}
+  input,textarea{width:100%;background:#12162a;border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 12px;font:inherit;margin-bottom:10px}
+  textarea{min-height:80px;resize:vertical}
+  .btn{width:100%;background:var(--acc);color:#fff;border:0;border-radius:10px;padding:12px;font:inherit;font-weight:600;cursor:pointer}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .msg{text-align:center;font-size:13px;margin-top:10px;color:var(--mut);min-height:18px}
+  .rev{border-top:1px solid var(--line);padding:12px 0}
+  .rev:first-of-type{border-top:0}
+  .rev .top{display:flex;justify-content:space-between;gap:8px;font-size:14px}
+  .rev .nm{font-weight:600}
+  .rev .tx{color:#cfd3ee;font-size:14px;margin-top:4px;white-space:pre-wrap;word-break:break-word}
+  .del{background:none;border:0;color:#ff8a8a;cursor:pointer;font-size:12px;padding:0;margin-top:4px}
+  .empty{color:var(--mut);text-align:center;font-size:14px;padding:8px 0}
+  .note{font-size:12px;color:var(--mut);text-align:center;margin-top:8px;line-height:1.4}
+  .actions{display:flex;gap:8px;margin-top:10px}
+  .actions .btn{flex:1}
+  .btn-secondary{background:#2a3050}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="hero">
+    <div class="avatar">D</div>
+    <h1>Daiyan Asnawi</h1>
+    <div class="sub">How would you rate me? Be honest ✨</div>
+  </div>
+
+  <div class="card" id="summary">
+    <h2>Overall rating</h2>
+    <div class="big">
+      <div class="avg" id="avg">–</div>
+      <div>
+        <div class="stars" id="avgStars">☆☆☆☆☆</div>
+        <div class="count" id="count">No ratings yet — be the first!</div>
+      </div>
+    </div>
+    <div class="bars" id="bars"></div>
+  </div>
+
+  <div class="card">
+    <h2>Your rating</h2>
+    <div class="picker" id="picker"></div>
+    <input id="nick" maxlength="40" placeholder="Your name (optional)">
+    <textarea id="comment" maxlength="400" placeholder="Leave a comment (optional)"></textarea>
+    <button class="btn" id="submit" disabled>Submit rating</button>
+    <div class="msg" id="msg"></div>
+    <div class="note">Ratings are saved in this browser only.<br>Anyone can open this page and rate independently.</div>
+  </div>
+
+  <div class="card">
+    <h2>What people said</h2>
+    <div id="reviews"><div class="empty">No comments yet.</div></div>
+    <div class="actions">
+      <button class="btn btn-secondary" id="exportBtn">Export ratings</button>
+      <button class="btn btn-secondary" id="clearBtn">Clear all ratings</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const STORAGE_KEY = 'daiyan-asnawi-ratings-v1';
+  const $ = id => document.getElementById(id);
+  let rating = 0;
+  let rows = [];
+  let myId = localStorage.getItem('daiyan-rater-id') || null;
+
+  function getMyId(){
+    if(!myId){
+      myId = 'u_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+      localStorage.setItem('daiyan-rater-id', myId);
+    }
+    return myId;
+  }
+
+  const picker = $('picker');
+  for(let i=1; i<=5; i++){
+    const b = document.createElement('button');
+    b.textContent = '★';
+    b.dataset.v = i;
+    b.setAttribute('aria-label', i + ' star' + (i>1?'s':''));
+    b.onclick = () => {
+      rating = i;
+      paint();
+      $('submit').disabled = false;
+    };
+    picker.appendChild(b);
+  }
+  function paint(){
+    [...picker.children].forEach(b => b.classList.toggle('on', +b.dataset.v <= rating));
+  }
+
+  function starStr(n){
+    const r = Math.round(n);
+    return '★'.repeat(r) + '☆'.repeat(5-r);
+  }
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      rows = raw ? JSON.parse(raw) : [];
+      if(!Array.isArray(rows)) rows = [];
+    }catch(e){
+      rows = [];
+    }
+  }
+
+  function save(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+  }
+
+  function render(){
+    const n = rows.length;
+    const sum = rows.reduce((a,r) => a + (r.rating||0), 0);
+    $('avg').textContent = n ? (sum/n).toFixed(1) : '–';
+    $('avgStars').textContent = n ? starStr(sum/n) : '☆☆☆☆☆';
+    $('count').textContent = n ? (n + ' rating' + (n>1?'s':'')) : 'No ratings yet — be the first!';
+
+    const bars = $('bars');
+    bars.textContent = '';
+    for(let s=5; s>=1; s--){
+      const c = rows.filter(r => r.rating === s).length;
+      const row = document.createElement('div');
+      row.className = 'bar';
+      const l = document.createElement('span'); l.textContent = s;
+      const t = document.createElement('div'); t.className = 'track';
+      const f = document.createElement('div'); f.className = 'fill';
+      f.style.width = (n ? (c/n*100) : 0) + '%';
+      t.appendChild(f);
+      const v = document.createElement('span'); v.textContent = c;
+      row.append(l, t, v);
+      bars.appendChild(row);
+    }
+
+    const box = $('reviews');
+    box.textContent = '';
+    const withText = rows
+      .filter(r => r.comment || true)
+      .sort((a,b) => (b.ts||0) - (a.ts||0));
+
+    if(!withText.length){
+      const e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = 'No comments yet.';
+      box.appendChild(e);
+      return;
+    }
+
+    withText.forEach(r => {
+      const d = document.createElement('div');
+      d.className = 'rev';
+      const top = document.createElement('div');
+      top.className = 'top';
+      const nm = document.createElement('span');
+      nm.className = 'nm';
+      nm.textContent = r.nick || 'Anonymous';
+      const st = document.createElement('span');
+      st.style.color = 'var(--star)';
+      st.textContent = starStr(r.rating);
+      top.append(nm, st);
+      d.appendChild(top);
+      if(r.comment){
+        const tx = document.createElement('div');
+        tx.className = 'tx';
+        tx.textContent = r.comment;
+        d.appendChild(tx);
+      }
+      if(r.id === myId){
+        const x = document.createElement('button');
+        x.className = 'del';
+        x.textContent = 'Remove my rating';
+        x.onclick = () => {
+          rows = rows.filter(item => item.id !== r.id);
+          save();
+          rating = 0;
+          paint();
+          $('nick').value = '';
+          $('comment').value = '';
+          $('submit').textContent = 'Submit rating';
+          $('submit').disabled = true;
+          $('msg').textContent = 'Your rating was removed.';
+          render();
+        };
+        d.appendChild(x);
+      }
+      box.appendChild(d);
+    });
+  }
+
+  load();
+  const mine = rows.find(r => r.id === getMyId());
+  if(mine){
+    rating = mine.rating;
+    paint();
+    $('nick').value = mine.nick || '';
+    $('comment').value = mine.comment || '';
+    $('submit').textContent = 'Update my rating';
+    $('submit').disabled = false;
+  }
+  render();
+
+  $('submit').onclick = () => {
+    if(!rating) return;
+    const id = getMyId();
+    const data = {
+      id,
+      rating,
+      nick: $('nick').value.trim().slice(0,40),
+      comment: $('comment').value.trim().slice(0,400),
+      ts: Date.now()
+    };
+
+    const idx = rows.findIndex(r => r.id === id);
+    if(idx >= 0){
+      rows[idx] = data;
+    } else {
+      rows.push(data);
+    }
+    save();
+    $('msg').textContent = 'Thanks! Your rating was saved ⭐';
+    $('submit').textContent = 'Update my rating';
+    render();
+  };
+
+  $('exportBtn').onclick = () => {
+    const blob = new Blob([JSON.stringify(rows, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'daiyan-asnawi-ratings.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  $('clearBtn').onclick = () => {
+    if(confirm('Clear all ratings stored in this browser?')){
+      rows = [];
+      save();
+      rating = 0;
+      paint();
+      $('nick').value = '';
+      $('comment').value = '';
+      $('submit').textContent = 'Submit rating';
+      $('submit').disabled = true;
+      $('msg').textContent = 'All ratings cleared.';
+      render();
+    }
+  };
+})();
+</script>
+</body>
+</html>
